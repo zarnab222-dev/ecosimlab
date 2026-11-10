@@ -31,9 +31,32 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      # Temporary public pause. Revert this workflow change to restore the sketch.
+      # Keep source and normal build intact; publish only this separate artifact.
+      - name: Prepare temporary offline page
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/offline-pages"
+          cat > "$RUNNER_TEMP/offline-pages/index.html" <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="robots" content="noindex, nofollow, noarchive">
+            <title>Temporarily unavailable</title>
+          </head>
+          <body>
+            <main><h1>Temporarily unavailable</h1><p>This site is currently offline.</p></main>
+          </body>
+          </html>
+          HTML
+          cp "$RUNNER_TEMP/offline-pages/index.html" "$RUNNER_TEMP/offline-pages/404.html"
+          printf 'User-agent: *\nDisallow: /\n' > "$RUNNER_TEMP/offline-pages/robots.txt"
+          touch "$RUNNER_TEMP/offline-pages/.nojekyll"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: packages/web/dist
+          path: ${{ runner.temp }}/offline-pages
       - id: deployment
         uses: actions/deploy-pages@v4
